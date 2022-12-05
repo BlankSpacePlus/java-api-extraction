@@ -1,0 +1,7 @@
+.idea
+target
+out
+classes
+*.class
+*.iml
+src/main/resources/docs/
