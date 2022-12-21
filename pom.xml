@@ -28,5 +28,11 @@
             <version>1.18.24</version>
             <scope>provided</scope>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.mongodb/mongodb-driver -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver</artifactId>
+            <version>3.12.11</version>
+        </dependency>
     </dependencies>
 </project>
