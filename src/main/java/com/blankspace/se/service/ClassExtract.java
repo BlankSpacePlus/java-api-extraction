@@ -5,10 +5,10 @@ import java.io.IOException;
 
 public interface ClassExtract {
 
-    public void addAllClassInfoIntoMongoDB() throws IOException;
+    void addAllClassInfoIntoMongoDB() throws IOException;
 
-    public void accessAllFiles(File rootFile) throws IOException;
+    void accessAllFiles(File rootFile) throws IOException;
 
-    public void getAllMethods(String fileName, String url) throws IOException;
+    void getAllMethods(String fileName, String url) throws IOException;
 
 }

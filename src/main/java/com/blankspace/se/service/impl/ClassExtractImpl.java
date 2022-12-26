@@ -33,7 +33,7 @@ public class ClassExtractImpl implements ClassExtract {
             String rootDictFile = rootFile.getName();
             for (File file : Objects.requireNonNull(rootFile.listFiles())) {
                 String fileName = file.getName();
-                if (file.isDirectory() && !"index-files".equals(fileName)) {
+                if (file.isDirectory() && !"index-files".equals(fileName) && !"class-use".equals(fileName)) {
                     accessAllFiles(file);
                 } else if (file.isFile() && !"api".equals(rootDictFile) && fileName.endsWith(".html")
                         && !"package-summary.html".equals(fileName) && !"package-tree.html".equals(fileName)
@@ -41,12 +41,12 @@ public class ClassExtractImpl implements ClassExtract {
                     System.out.println(fileName.replaceAll(".html", ".class"));
                     StringBuilder urlLink = new StringBuilder();
                     // https://docs.oracle.com/en/java/javase/19/docs/api/java.base/java/lang/Integer.html
-                    urlLink.append("https://docs.oracle.com/en/java/javase/19/");
+                    urlLink.append("https://docs.oracle.com/en/java/javase/19");
                     // 如果Windows系统路径不符合Web上URL格式，则replaceAll()处理，正则表达式反斜线要加四个才行
                     String baseURL = rootFile.toString()
                             .replaceAll(".\\\\src\\\\main\\\\resources", "")
                             .replaceAll("\\\\", "/");
-                    urlLink.append(baseURL).append(fileName);
+                    urlLink.append(baseURL).append('\\').append(fileName);
                     System.out.println(urlLink);
                     getAllMethods(file.toString(), urlLink.toString());
                 }
@@ -76,7 +76,7 @@ public class ClassExtractImpl implements ClassExtract {
                 className.append(aList.get(1).text()).append('.');
                 className.append(h1List.get(0).text().substring(6));
             }
-            newClassObj.setClassName(className.toString());
+            newClassObj.setClassName(className.toString().trim());
             System.out.println(className);
         }
         List<JavaMethod> javaMethodList = new ArrayList<>();
@@ -98,21 +98,22 @@ public class ClassExtractImpl implements ClassExtract {
                         StringBuilder methodTitle = new StringBuilder();
                         // class: modifiers + return-type + element-name + parameters + exceptions
                         for (Element methodSpan : memberSignature) {
-                            methodTitle.append(methodSpan.text()).append(' ');
+                            methodTitle.append(methodSpan.text().trim()).append(' ');
                         }
                         System.out.println(methodTitle);
-                        newMethodObj.setMethodTitle(methodTitle.toString());
+                        // 把.替换成*，不然MongoDB不支持写入
+                        newMethodObj.setMethodTitle(methodTitle.toString().trim().replaceAll("[.]", "*"));
                         Elements blockDiv = detailSection.getElementsByClass("block");
                         StringBuilder methodContent = new StringBuilder();
                         for (Element content : blockDiv) {
-                            methodContent.append(content.text()).append(' ');
+                            methodContent.append(content.text().trim());
                         }
                         newMethodObj.setMethodContent(methodContent.toString());
                         System.out.println(methodContent);
                         Elements notesDiv = detailSection.getElementsByClass("notes");
                         StringBuilder methodNotes = new StringBuilder();
                         for (Element note : notesDiv) {
-                            methodNotes.append(note.text()).append(' ');
+                            methodNotes.append(note.text().trim());
                         }
                         newMethodObj.setMethodNotes(methodNotes.toString());
                         javaMethodList.add(newMethodObj);
