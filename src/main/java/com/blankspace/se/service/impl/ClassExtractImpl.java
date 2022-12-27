@@ -46,7 +46,7 @@ public class ClassExtractImpl implements ClassExtract {
                     String baseURL = rootFile.toString()
                             .replaceAll(".\\\\src\\\\main\\\\resources", "")
                             .replaceAll("\\\\", "/");
-                    urlLink.append(baseURL).append('\\').append(fileName);
+                    urlLink.append(baseURL).append('/').append(fileName);
                     System.out.println(urlLink);
                     getAllMethods(file.toString(), urlLink.toString());
                 }
