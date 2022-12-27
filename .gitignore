@@ -5,3 +5,4 @@ classes
 *.class
 *.iml
 src/main/resources/docs/
+src/main/resources/codes/

@@ -17,18 +17,39 @@ import org.jsoup.select.Elements;
 import com.blankspace.se.dao.ApiDao;
 import com.blankspace.se.pojo.JavaClass;
 import com.blankspace.se.pojo.JavaMethod;
-import com.blankspace.se.service.ClassExtract;
+import com.blankspace.se.service.ClassProcess;
 
-public class ClassExtractImpl implements ClassExtract {
+public class ClassProcessImpl implements ClassProcess {
 
     private static final List<JavaClass> javaClassList = new ArrayList<>();
 
-    public void addAllClassInfoIntoMongoDB() throws IOException {
-        accessAllFiles(new File("./src/main/resources/docs/api"));
+    private static volatile ClassProcessImpl singletonService;
+
+    private ClassProcessImpl() {
+    }
+
+    // 双重校验锁单例模式
+    public static ClassProcessImpl getSingletonService() {
+        if (singletonService == null) {
+            synchronized (ClassProcessImpl.class) {
+                if (singletonService == null) {
+                    singletonService = new ClassProcessImpl();
+                }
+            }
+        }
+        return singletonService;
+    }
+
+    @Override
+    public void addAllClassInfoIntoMongoDB() {
+        // 获取所有的JavaClass及其JavaMethod数据
+        String rootPath = "./src/main/resources/docs/api";
+        accessAllFiles(new File(rootPath));
+        // 将获取到的数据写入MongoDB
         ApiDao.getSingletonDao().insertAllJavaAPIs(javaClassList);
     }
 
-    public void accessAllFiles(File rootFile) throws IOException {
+    private void accessAllFiles(File rootFile) {
         if (rootFile != null) {
             String rootDictFile = rootFile.getName();
             for (File file : Objects.requireNonNull(rootFile.listFiles())) {
@@ -54,7 +75,7 @@ public class ClassExtractImpl implements ClassExtract {
         }
     }
 
-    public void getAllMethods(String fileName, String url) throws IOException {
+    private void getAllMethods(String fileName, String url) {
         StringBuilder htmlContent = new StringBuilder();
         JavaClass newClassObj = new JavaClass();
         System.out.println(javaClassList.size() + 1);
@@ -65,6 +86,8 @@ public class ClassExtractImpl implements ClassExtract {
             while (scanner.hasNextLine()) {
                 htmlContent.append(scanner.nextLine()).append("\n");
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         Document doc = Jsoup.parse(htmlContent.toString());
         Elements headerDiv = doc.getElementsByClass("header");

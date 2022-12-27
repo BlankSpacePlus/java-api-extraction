@@ -1,16 +1,25 @@
 package com.blankspace.se;
 
-import java.io.File;
-import java.io.IOException;
-
-import com.blankspace.se.service.ClassExtract;
-import com.blankspace.se.service.impl.ClassExtractImpl;
+import com.blankspace.se.service.ClassProcess;
+import com.blankspace.se.service.CodeProcess;
+import com.blankspace.se.service.impl.ClassProcessImpl;
+import com.blankspace.se.service.impl.CodeProcessImpl;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException {
-        ClassExtract extractor = new ClassExtractImpl();
-        extractor.addAllClassInfoIntoMongoDB();
+    private static void initJavaClassData() {
+        ClassProcess processor = ClassProcessImpl.getSingletonService();
+        processor.addAllClassInfoIntoMongoDB();
+    }
+
+    private static void initCodeSearchNetData() {
+        CodeProcess processor = CodeProcessImpl.getSingletonService();
+        processor.accessAllFiles();
+    }
+
+    public static void main(String[] args) {
+        // initJavaClassData();
+        initCodeSearchNetData();
     }
 
 }
