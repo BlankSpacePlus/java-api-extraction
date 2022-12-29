@@ -76,7 +76,6 @@ public class ApiDao {
             System.out.println(collection.countDocuments());
         } catch (Exception e) {
             e.printStackTrace();
-            //System.err.println(e.getClass().getName() + ": " + e.getMessage());
         }
     }
 

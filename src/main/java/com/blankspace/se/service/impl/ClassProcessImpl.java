@@ -125,6 +125,7 @@ public class ClassProcessImpl implements ClassProcess {
                         }
                         System.out.println(methodTitle);
                         // 把.替换成*，不然MongoDB不支持写入
+                        // https://jira.mongodb.org/browse/JAVA-3452
                         newMethodObj.setMethodTitle(methodTitle.toString().trim().replaceAll("[.]", "*"));
                         Elements blockDiv = detailSection.getElementsByClass("block");
                         StringBuilder methodContent = new StringBuilder();
