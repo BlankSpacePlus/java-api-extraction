@@ -44,18 +44,18 @@ public class ClassProcessImpl implements ClassProcess {
     public void addAllClassInfoIntoMongoDB() {
         // 获取所有的JavaClass及其JavaMethod数据
         String rootPath = "./src/main/resources/docs/api";
-        accessAllFiles(new File(rootPath));
+        accessDocFiles(new File(rootPath));
         // 将获取到的数据写入MongoDB
         ApiDao.getSingletonDao().insertAllJavaAPIs(javaClassList);
     }
 
-    private void accessAllFiles(File rootFile) {
+    private void accessDocFiles(File rootFile) {
         if (rootFile != null) {
             String rootDictFile = rootFile.getName();
             for (File file : Objects.requireNonNull(rootFile.listFiles())) {
                 String fileName = file.getName();
                 if (file.isDirectory() && !"index-files".equals(fileName) && !"class-use".equals(fileName)) {
-                    accessAllFiles(file);
+                    accessDocFiles(file);
                 } else if (file.isFile() && !"api".equals(rootDictFile) && fileName.endsWith(".html")
                         && !"package-summary.html".equals(fileName) && !"package-tree.html".equals(fileName)
                         && !"package-use.html".equals(fileName) && !"module-summary.html".equals(fileName)) {

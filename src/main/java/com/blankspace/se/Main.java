@@ -14,12 +14,18 @@ public class Main {
 
     private static void initCodeSearchNetData() {
         CodeProcess processor = CodeProcessImpl.getSingletonService();
-        processor.accessAllFiles();
+        processor.downloadSourceCodeFiles();
+    }
+
+    private static void loadClassFileImport() {
+        CodeProcess processor = CodeProcessImpl.getSingletonService();
+        processor.getJavaFileImports();
     }
 
     public static void main(String[] args) {
         // initJavaClassData();
         initCodeSearchNetData();
+        // loadClassFileImport();
     }
 
 }

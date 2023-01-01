@@ -3,20 +3,23 @@ package com.blankspace.se.service.impl;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Scanner;
+import java.util.Set;
+
+import javax.net.ssl.SSLHandshakeException;
 
 import com.blankspace.se.pojo.JavaMethodCode;
 import com.blankspace.se.service.CodeProcess;
@@ -29,6 +32,8 @@ public class CodeProcessImpl implements CodeProcess {
     private static final String PROXY_ADDRESS = "127.0.0.1";
 
     private static final int PROXY_PORT = 7079;
+
+    private static final Set<String> urlNotFoundSet = new HashSet<>();
 
     private static volatile CodeProcessImpl singletonService;
 
@@ -47,8 +52,9 @@ public class CodeProcessImpl implements CodeProcess {
         return singletonService;
     }
 
+
     @Override
-    public void accessAllFiles() {
+    public void downloadSourceCodeFiles() {
         File rootDictionary = new File(ROOT_PATH);
         // CodeSearchNet的.jsonl文件
         for (File file : Objects.requireNonNull(rootDictionary.listFiles())) {
@@ -56,12 +62,48 @@ public class CodeProcessImpl implements CodeProcess {
             if (fileName.startsWith("java") && fileName.endsWith(".jsonl")) {
                 String fileFullName = ROOT_PATH + file.getName();
                 System.out.println("正在扫描" + fileFullName);
-                process(fileFullName);
+                loadAndProcessJsonlFile(fileFullName);
             }
         }
     }
 
-    private void process(String fileName) {
+    @Override
+    public void getJavaFileImports() {
+        accessJavaFiles(new File(ROOT_PATH));
+    }
+
+    private void accessJavaFiles(File rootFile) {
+        if (rootFile != null) {
+            String rootDictFile = rootFile.toString();
+            for (File file : Objects.requireNonNull(rootFile.listFiles())) {
+                String fileName = rootDictFile + "\\" + file.getName();
+                if (file.isDirectory()) {
+                    accessJavaFiles(file);
+                } else if (file.isFile() && fileName.endsWith(".java")) {
+                    System.out.println(fileName);
+                    // loadAndProcessJavaFile(fileName);
+                }
+            }
+        }
+    }
+
+    private void loadAndProcessJavaFile(String fileName) {
+        // File、Path的根目录为工程根目录
+        try (Scanner scanner = new Scanner(Files.newInputStream(Paths.get(fileName)))) {
+            while (scanner.hasNextLine()) {
+                String lineCode = scanner.nextLine();
+                if (lineCode.contains("class ")) {
+                    break;
+                } else if (lineCode.contains("import")) {
+                    System.out.println(lineCode);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadAndProcessJsonlFile(String fileName) {
         // File、Path的根目录为工程根目录
         try (Scanner scanner = new Scanner(Files.newInputStream(Paths.get(fileName)))) {
             while (scanner.hasNextLine()) {
@@ -117,7 +159,7 @@ public class CodeProcessImpl implements CodeProcess {
         // 获取文件待存储目录
         String classFilePath = ROOT_PATH + classCodePath.replaceAll("/" + classFileName, "");
         // 带上路径的完整文件名
-        classFileName = classFilePath + classFileName;
+        classFileName = classFilePath + "/" + classFileName;
         // 拼接可访问下载文件的URL
         classCodeURL = classCodeURL.replaceAll("https://github.com/", "https://raw.githubusercontent.com/");
         classCodeURL = classCodeURL.replaceAll("/blob/", "/");
@@ -139,7 +181,8 @@ public class CodeProcessImpl implements CodeProcess {
     }
 
     public void downloadJavaFiles(String url, String filePath, String fileName) {
-        if (!new File(fileName).exists()) {
+        String baseURL = getBaseURL(url);
+        if (!urlNotFoundSet.contains(baseURL) && !new File(fileName).exists()) {
             // 创建不同的文件夹目录
             File file = new File(filePath);
             // 判断文件夹是否存在，多余的检查罢了
@@ -148,7 +191,7 @@ public class CodeProcessImpl implements CodeProcess {
                 file.mkdirs();
             }
             HttpURLConnection connection = null;
-            InputStream inputStream = null;
+            BufferedInputStream bis = null;
             try (BufferedOutputStream bos = new BufferedOutputStream(Files.newOutputStream(Paths.get(fileName)))) {
                 // 建立链接
                 URL httpUrl = new URL(url);
@@ -168,8 +211,7 @@ public class CodeProcessImpl implements CodeProcess {
                 // 连接指定的资源
                 connection.connect();
                 // 获取网络输入流
-                inputStream = connection.getInputStream();
-                BufferedInputStream bis = new BufferedInputStream(inputStream);
+                bis = new BufferedInputStream(connection.getInputStream());
                 byte[] buffer = new byte[4096];
                 int length = bis.read(buffer);
                 // 保存文件
@@ -178,7 +220,20 @@ public class CodeProcessImpl implements CodeProcess {
                     length = bis.read(buffer);
                 }
             } catch (FileNotFoundException e) {
-                // 不可避免会出现一些404的情况，比如仓库被删除、用户改名称等，只能跳过
+                // 不可避免会出现一些404的情况，比如仓库被删除、用户改名称等，需要把URL存入Set，以防多次重复访问
+                urlNotFoundSet.add(baseURL);
+                e.printStackTrace();
+            } catch (SSLHandshakeException e) {
+                // javax.net.ssl.SSLHandshakeException: Remote host terminated the handshake
+                e.printStackTrace();
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
+                }
+            } catch (EOFException e) {
+                // java.io.EOFException: SSL peer shut down incorrectly
+                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
@@ -186,14 +241,22 @@ public class CodeProcessImpl implements CodeProcess {
                     if (connection != null) {
                         connection.disconnect();
                     }
-                    if (inputStream != null) {
-                        inputStream.close();
+                    if (bis != null) {
+                        bis.close();
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         }
+    }
+
+    private String getBaseURL(String url) {
+        String result = "https://raw.githubusercontent.com/";
+        url = url.replaceAll(result, "");
+        String[] urlNodes = url.split("/");
+        result = result + urlNodes[0] + urlNodes[1];
+        return result;
     }
 
     private void appendCodeToFile(String fileName, String code) {
