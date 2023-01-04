@@ -24,8 +24,8 @@ public class Main {
 
     public static void main(String[] args) {
         // initJavaClassData();
-        initCodeSearchNetData();
-        // loadClassFileImport();
+        // initCodeSearchNetData();
+        loadClassFileImport();
     }
 
 }

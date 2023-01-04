@@ -52,7 +52,6 @@ public class CodeProcessImpl implements CodeProcess {
         return singletonService;
     }
 
-
     @Override
     public void downloadSourceCodeFiles() {
         File rootDictionary = new File(ROOT_PATH);
@@ -64,42 +63,6 @@ public class CodeProcessImpl implements CodeProcess {
                 System.out.println("正在扫描" + fileFullName);
                 loadAndProcessJsonlFile(fileFullName);
             }
-        }
-    }
-
-    @Override
-    public void getJavaFileImports() {
-        accessJavaFiles(new File(ROOT_PATH));
-    }
-
-    private void accessJavaFiles(File rootFile) {
-        if (rootFile != null) {
-            String rootDictFile = rootFile.toString();
-            for (File file : Objects.requireNonNull(rootFile.listFiles())) {
-                String fileName = rootDictFile + "\\" + file.getName();
-                if (file.isDirectory()) {
-                    accessJavaFiles(file);
-                } else if (file.isFile() && fileName.endsWith(".java")) {
-                    System.out.println(fileName);
-                    // loadAndProcessJavaFile(fileName);
-                }
-            }
-        }
-    }
-
-    private void loadAndProcessJavaFile(String fileName) {
-        // File、Path的根目录为工程根目录
-        try (Scanner scanner = new Scanner(Files.newInputStream(Paths.get(fileName)))) {
-            while (scanner.hasNextLine()) {
-                String lineCode = scanner.nextLine();
-                if (lineCode.contains("class ")) {
-                    break;
-                } else if (lineCode.contains("import")) {
-                    System.out.println(lineCode);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -141,6 +104,16 @@ public class CodeProcessImpl implements CodeProcess {
         }
     }
 
+    private void appendCodeToFile(String fileName, String code) {
+        try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(fileName, true))) {
+            bufferedWriter.write(code);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void splitURL(String methodCodeURL) {
         String[] methodCodeURLInfo = methodCodeURL.split("#");
         String classCodeURL = methodCodeURLInfo[0];
@@ -178,6 +151,14 @@ public class CodeProcessImpl implements CodeProcess {
                 file.mkdirs();
             }
         }
+    }
+
+    private String getBaseURL(String url) {
+        String result = "https://raw.githubusercontent.com/";
+        url = url.replaceAll(result, "");
+        String[] urlNodes = url.split("/");
+        result = result + urlNodes[0] + urlNodes[1];
+        return result;
     }
 
     public void downloadJavaFiles(String url, String filePath, String fileName) {
@@ -251,19 +232,59 @@ public class CodeProcessImpl implements CodeProcess {
         }
     }
 
-    private String getBaseURL(String url) {
-        String result = "https://raw.githubusercontent.com/";
-        url = url.replaceAll(result, "");
-        String[] urlNodes = url.split("/");
-        result = result + urlNodes[0] + urlNodes[1];
-        return result;
+    public void renameAndMoveJavaFiles(File rootDictionary, File dictionary) {
+        // 下载文件后出现了路径配置BUG，需要修复
+        // 例如：.\src\main\resources\codes\1337joe\cubesensors-for-java\blob\f3ba432d36b744e68b916682d7ef24afaff447f8\src\main\java\com\w3asel\cubesensors\api\v1\jsonStateParser.java
+        // 正解：.\src\main\resources\codes\1337joe\cubesensors-for-java\blob\f3ba432d36b744e68b916682d7ef24afaff447f8\src\main\java\com\w3asel\cubesensors\api\v1\json\StateParser.java
+        assert rootDictionary != null;
+        assert dictionary != null;
+        String dictName = dictionary.getName();
+        for (File file : Objects.requireNonNull(rootDictionary.listFiles())) {
+            String fileName = file.toString();
+            if (file.isFile() && fileName.endsWith(".java")) {
+                String[] filePathNodes = fileName.split("\\\\");
+                int filePathDepth = filePathNodes.length;
+                String originFileName = filePathNodes[filePathDepth-1];
+                if (originFileName.startsWith(dictName)) {
+                    String newFileName = dictName + "\\\\" + originFileName.replaceAll(dictName, "");
+                    fileName = fileName.replaceAll(originFileName, newFileName);
+                    file.renameTo(new File(fileName));
+                }
+            }
+        }
     }
 
-    private void appendCodeToFile(String fileName, String code) {
-        try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(fileName, true))) {
-            bufferedWriter.write(code);
-            bufferedWriter.newLine();
-            bufferedWriter.flush();
+    @Override
+    public void getJavaFileImports() {
+        accessJavaFiles(new File(ROOT_PATH));
+    }
+
+    private void accessJavaFiles(File rootFile) {
+        if (rootFile != null) {
+            for (File file : Objects.requireNonNull(rootFile.listFiles())) {
+                String fileName = file.toString();
+                if (file.isDirectory()) {
+                    accessJavaFiles(file);
+                    // 修复下载文件后的文件路径BUG
+                    // renameAndMoveJavaFiles(rootFile, file);
+                } else if (file.isFile() && fileName.endsWith(".java")) {
+                    // loadAndProcessJavaFile(fileName);
+                }
+            }
+        }
+    }
+
+    private void loadAndProcessJavaFile(String fileName) {
+        // File、Path的根目录为工程根目录
+        try (Scanner scanner = new Scanner(Files.newInputStream(Paths.get(fileName)))) {
+            while (scanner.hasNextLine()) {
+                String lineCode = scanner.nextLine();
+                if (lineCode.contains("class ")) {
+                    break;
+                } else if (lineCode.contains("import")) {
+                    System.out.println(lineCode);
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
