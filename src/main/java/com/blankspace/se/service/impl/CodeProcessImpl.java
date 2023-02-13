@@ -21,13 +21,14 @@ import java.util.Set;
 
 import javax.net.ssl.SSLHandshakeException;
 
+import com.blankspace.se.pojo.JavaCodeStorage;
 import com.blankspace.se.pojo.JavaMethodCode;
 import com.blankspace.se.service.CodeProcess;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class CodeProcessImpl implements CodeProcess {
 
-    private static final String ROOT_PATH = "./src/main/resources/codes/";
+    private static final String ROOT_PATH = "D:/IDEA/java-api-extraction/codes/"; // ./src/main/resources/codes/
 
     private static final String PROXY_ADDRESS = "127.0.0.1";
 
@@ -61,12 +62,12 @@ public class CodeProcessImpl implements CodeProcess {
             if (fileName.startsWith("java") && fileName.endsWith(".jsonl")) {
                 String fileFullName = ROOT_PATH + file.getName();
                 System.out.println("正在扫描" + fileFullName);
-                loadAndProcessJsonlFile(fileFullName);
+                saveSourceCodeFiles(fileFullName);
             }
         }
     }
 
-    private void loadAndProcessJsonlFile(String fileName) {
+    private void saveSourceCodeFiles(String fileName) {
         // File、Path的根目录为工程根目录
         try (Scanner scanner = new Scanner(Files.newInputStream(Paths.get(fileName)))) {
             while (scanner.hasNextLine()) {
@@ -79,7 +80,7 @@ public class CodeProcessImpl implements CodeProcess {
                 // String methodCode = code.getCode();
                 // 扫描含有.的非`实例.方法`调用的方法，检测出292.74MB，数据规模非常大
                 // checkMethodCodeHasPoint(methodCode);
-                splitURL(methodCodeURL);
+                downloadFromGitHub(methodCodeURL);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -104,6 +105,11 @@ public class CodeProcessImpl implements CodeProcess {
         }
     }
 
+    /**
+     * 在文件末追加代码
+     * @param fileName 文件全名
+     * @param code 代码段
+     */
     private void appendCodeToFile(String fileName, String code) {
         try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(fileName, true))) {
             bufferedWriter.write(code);
@@ -114,7 +120,22 @@ public class CodeProcessImpl implements CodeProcess {
         }
     }
 
-    private void splitURL(String methodCodeURL) {
+    private void downloadFromGitHub(String methodCodeURL) {
+        // 获取从URL解析出的文件路径信息和下载链接
+        JavaCodeStorage storageInfo = getFilePathFromURL(methodCodeURL);
+        String classCodeURL = storageInfo.getClassCodeURL();
+        String classFilePath = storageInfo.getClassFilePath();
+        String classFileName = storageInfo.getClassFileName();
+        // 下载文件
+        downloadJavaFiles(classCodeURL, classFilePath, classFileName);
+    }
+
+    /**
+     * 从URL中解析所需的文件路径信息和下载链接
+     * @param methodCodeURL CodeSearchNet代码对应的URL
+     * @return 封装好的文件路径信息和下载链接
+     */
+    private JavaCodeStorage getFilePathFromURL(String methodCodeURL) {
         String[] methodCodeURLInfo = methodCodeURL.split("#");
         String classCodeURL = methodCodeURLInfo[0];
         String[] methodLineRange = methodCodeURLInfo[1].split("-");
@@ -136,8 +157,7 @@ public class CodeProcessImpl implements CodeProcess {
         // 拼接可访问下载文件的URL
         classCodeURL = classCodeURL.replaceAll("https://github.com/", "https://raw.githubusercontent.com/");
         classCodeURL = classCodeURL.replaceAll("/blob/", "/");
-        // 下载文件
-        downloadJavaFiles(classCodeURL, classFilePath, classFileName);
+        return new JavaCodeStorage(classCodeURL, classFilePath, classFileName);
     }
 
     private void checkAndMkdirs(String[] pathNodes, int length) {
@@ -161,7 +181,7 @@ public class CodeProcessImpl implements CodeProcess {
         return result;
     }
 
-    public void downloadJavaFiles(String url, String filePath, String fileName) {
+    private void downloadJavaFiles(String url, String filePath, String fileName) {
         String baseURL = getBaseURL(url);
         if (!urlNotFoundSet.contains(baseURL) && !new File(fileName).exists()) {
             // 创建不同的文件夹目录
@@ -254,6 +274,38 @@ public class CodeProcessImpl implements CodeProcess {
         }
     }
 
+    public void modifyMethodCodeImports() {
+        File rootDictionary = new File(ROOT_PATH);
+        // 扫描CodeSearchNet的.jsonl文件
+        for (File file : Objects.requireNonNull(rootDictionary.listFiles())) {
+            String fileName = file.getName();
+            if (fileName.startsWith("java") && fileName.endsWith(".jsonl")) {
+                String fileFullName = ROOT_PATH + file.getName();
+                System.out.println("正在扫描" + fileFullName);
+                loadAndModifyMethodCode(fileFullName);
+            }
+        }
+    }
+
+    private void loadAndModifyMethodCode(String fileName) {
+        // File、Path的根目录为工程根目录
+        try (Scanner scanner = new Scanner(Files.newInputStream(Paths.get(fileName)))) {
+            while (scanner.hasNextLine()) {
+                String json = scanner.nextLine();
+                ObjectMapper mapper = new ObjectMapper();
+                JavaMethodCode codeObject = mapper.readValue(json, JavaMethodCode.class);
+                String methodCode = codeObject.getCode();
+                String methodCodeURL = codeObject.getUrl();
+                // 获取从URL解析出的文件路径全名信息
+                JavaCodeStorage storageInfo = getFilePathFromURL(methodCodeURL);
+                String classFileName = storageInfo.getClassFileName();
+                // TODO import替换
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void getJavaFileImports() {
         accessJavaFiles(new File(ROOT_PATH));
@@ -268,7 +320,10 @@ public class CodeProcessImpl implements CodeProcess {
                     // 修复下载文件后的文件路径BUG
                     // renameAndMoveJavaFiles(rootFile, file);
                 } else if (file.isFile() && fileName.endsWith(".java")) {
-                    // loadAndProcessJavaFile(fileName);
+                    System.out.println(fileName);
+                    loadAndProcessJavaFile(fileName);
+                    // TODO remove break
+                    break;
                 }
             }
         }

@@ -40,15 +40,22 @@ public class ClassProcessImpl implements ClassProcess {
         return singletonService;
     }
 
+    /**
+     * 从JavaDoc中提取类信息并存储到MongoDB中。
+     */
     @Override
     public void addAllClassInfoIntoMongoDB() {
         // 获取所有的JavaClass及其JavaMethod数据
-        String rootPath = "./src/main/resources/docs/api";
+        String rootPath = "D:/IDEA/java-api-extraction/docs/api"; // ./src/main/resources/docs/api
         accessDocFiles(new File(rootPath));
         // 将获取到的数据写入MongoDB
         ApiDao.getSingletonDao().insertAllJavaAPIs(javaClassList);
     }
 
+    /**
+     * DFS递归遍历根目录下所有的JavaDoc文件。
+     * @param rootFile 当前根目录
+     */
     private void accessDocFiles(File rootFile) {
         if (rootFile != null) {
             String rootDictFile = rootFile.getName();
@@ -75,6 +82,11 @@ public class ClassProcessImpl implements ClassProcess {
         }
     }
 
+    /**
+     * 从JavaDoc中解析出所有类的所有的方法，编写代码的过程需要查看网页源码反复校对XPath。
+     * @param fileName JavaDoc文件全名
+     * @param url JavaDoc文件对应的网页URL
+     */
     private void getAllMethods(String fileName, String url) {
         StringBuilder htmlContent = new StringBuilder();
         JavaClass newClassObj = new JavaClass();

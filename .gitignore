@@ -4,5 +4,6 @@ out
 classes
 *.class
 *.iml
+codes/
 src/main/resources/docs/
 src/main/resources/codes/

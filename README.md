@@ -1,6 +1,6 @@
 # Java抽取Java-API文档数据
 
-![](./src/main/resources/images/java.png)
+## 开发工具和数据源
 
 - MongoDB
     - [MongoDB](https://www.mongodb.com)
@@ -28,3 +28,7 @@
         - [GitHub](https://github.com/github/CodeSearchNet)
         - [Paper](https://arxiv.org/abs/1909.09436)
         - [Java代码数据下载](https://s3.amazonaws.com/code-search-net/CodeSearchNet/v2/java.zip)
+
+## 开发记录
+
+- 关于绝对路径和相对路径：原先一直喜欢用相对路径，但后来由于文件量太大导致编译拷贝过慢，所以暂时改成绝对路径。
