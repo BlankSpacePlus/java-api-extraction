@@ -23,13 +23,13 @@ public class ClassProcessImpl implements ClassProcess {
 
     private static final List<JavaClass> javaClassList = new ArrayList<>();
 
-    private static volatile ClassProcessImpl singletonService;
+    private static volatile ClassProcess singletonService;
 
     private ClassProcessImpl() {
     }
 
     // 双重校验锁单例模式
-    public static ClassProcessImpl getSingletonService() {
+    public static ClassProcess getSingletonService() {
         if (singletonService == null) {
             synchronized (ClassProcessImpl.class) {
                 if (singletonService == null) {
