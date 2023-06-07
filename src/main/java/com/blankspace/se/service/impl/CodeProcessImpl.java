@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class CodeProcessImpl implements CodeProcess {
 
-    private static final String ROOT_PATH = "D:/IDEA/java-api-extraction/codes/"; // ./src/main/resources/codes/
+    private static final String ROOT_PATH = "./src/main/resources/codes/"; // 最好是写绝对路径
 
     private static final String PROXY_ADDRESS = "127.0.0.1";
 
@@ -322,8 +322,6 @@ public class CodeProcessImpl implements CodeProcess {
                 } else if (file.isFile() && fileName.endsWith(".java")) {
                     System.out.println(fileName);
                     loadAndProcessJavaFile(fileName);
-                    // TODO remove break
-                    break;
                 }
             }
         }

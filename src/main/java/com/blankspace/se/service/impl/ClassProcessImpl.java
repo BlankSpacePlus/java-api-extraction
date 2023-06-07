@@ -46,7 +46,7 @@ public class ClassProcessImpl implements ClassProcess {
     @Override
     public void addAllClassInfoIntoMongoDB() {
         // 获取所有的JavaClass及其JavaMethod数据
-        String rootPath = "D:/IDEA/java-api-extraction/docs/api"; // ./src/main/resources/docs/api
+        String rootPath = "./src/main/resources/docs/api"; // 最好是写绝对路径
         accessDocFiles(new File(rootPath));
         // 将获取到的数据写入MongoDB
         ApiDao.getSingletonDao().insertAllJavaAPIs(javaClassList);

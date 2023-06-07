@@ -1,7 +1,9 @@
-# Java抽取Java-API文档数据
+# 开发者搜索数据抽取
 
 ## 开发工具和数据源
 
+- Java
+    - [JDK 1.8](https://www.oracle.com/jp/java/technologies/javase/javase8-archive-downloads.html)
 - MongoDB
     - [MongoDB](https://www.mongodb.com)
     - [Install MongoDB Community Edition on Windows](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-windows)
@@ -29,6 +31,18 @@
         - [Paper](https://arxiv.org/abs/1909.09436)
         - [Java代码数据下载](https://s3.amazonaws.com/code-search-net/CodeSearchNet/v2/java.zip)
 
-## 开发记录
+## 方法级代码数据抽取
 
-- 关于绝对路径和相对路径：原先一直喜欢用相对路径，但后来由于文件量太大导致编译拷贝过慢，所以暂时改成绝对路径。
+- 直接给定类全名：小写字母开头的`package`名+大写字母开头的`class`名。
+- 没有给定类全名：获取方法级代码对应的类级代码，遍历可选类名并匹配，进而获取类全名。
+    - 从`import`信息获取类全名。
+        - 静态导入的内部类：从`import static`获取。
+        - 导入的类：从`import`获取。
+        - 导入的包中的类：从`import <package_name>.*`获取。（**难点**）
+    - 将`package`名+当前类名组成当前类全名。
+    - 遍历当前类的非`private`内部类，将当前类全名+内部类名组成内部类全名。
+    - 遍历当前`package`，将`package`名+对应类名组成同包类全名。
+
+## 开发者搜索
+
+[![](./src/main/resources/images/developer-search.png)](../../../python-developer-search)
